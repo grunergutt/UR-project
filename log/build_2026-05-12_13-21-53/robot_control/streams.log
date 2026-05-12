@@ -1,0 +1,15 @@
+[1.778s] Invoking command in '/home/fillipg/UR-Prosjekt/build/robot_control': DEBUGINFOD_URLS=https://debuginfod.ubuntu.com PYTHONPATH=/home/fillipg/UR-Prosjekt/build/robot_control/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/fillipg/UR-Prosjekt/install/robot_control/lib/python3.12/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py develop --editable --build-directory /home/fillipg/UR-Prosjekt/build/robot_control/build --no-deps symlink_data
+[2.279s] running develop
+[2.551s] running egg_info
+[2.580s] writing robot_control.egg-info/PKG-INFO
+[2.581s] writing dependency_links to robot_control.egg-info/dependency_links.txt
+[2.582s] writing requirements to robot_control.egg-info/requires.txt
+[2.582s] writing top-level names to robot_control.egg-info/top_level.txt
+[2.630s] reading manifest file 'robot_control.egg-info/SOURCES.txt'
+[2.631s] writing manifest file 'robot_control.egg-info/SOURCES.txt'
+[2.657s] running build_ext
+[2.657s] Creating /home/fillipg/UR-Prosjekt/install/robot_control/lib/python3.12/site-packages/robot-control.egg-link (link to .)
+[2.658s] 
+[2.658s] Installed /home/fillipg/UR-Prosjekt/build/robot_control
+[2.658s] running symlink_data
+[2.787s] Invoked command in '/home/fillipg/UR-Prosjekt/build/robot_control' returned '0': DEBUGINFOD_URLS=https://debuginfod.ubuntu.com PYTHONPATH=/home/fillipg/UR-Prosjekt/build/robot_control/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/fillipg/UR-Prosjekt/install/robot_control/lib/python3.12/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py develop --editable --build-directory /home/fillipg/UR-Prosjekt/build/robot_control/build --no-deps symlink_data

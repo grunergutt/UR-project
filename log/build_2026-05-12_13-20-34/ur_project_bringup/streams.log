@@ -1,0 +1,35 @@
+[0.916s] Invoking command in '/home/fillipg/UR-Prosjekt/build/ur_project_bringup': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/fillipg/AIS2105_ws/install/reference_input:/home/fillipg/AIS2105_ws/install/qube_description:/home/fillipg/AIS2105_ws/install/qube_controller:/home/fillipg/AIS2105_ws/install/qube_bringup:/home/fillipg/AIS2105_ws/install/joint_simulator:/opt/ros/jazzy DEBUGINFOD_URLS=https://debuginfod.ubuntu.com /usr/bin/cmake /home/fillipg/UR-Prosjekt/src/ur_project_bringup -DAMENT_CMAKE_SYMLINK_INSTALL=1 -DCMAKE_INSTALL_PREFIX=/home/fillipg/UR-Prosjekt/install/ur_project_bringup
+[1.929s] -- The C compiler identification is GNU 13.3.0
+[3.513s] -- The CXX compiler identification is GNU 13.3.0
+[4.609s] -- Detecting C compiler ABI info
+[5.021s] -- Detecting C compiler ABI info - done
+[5.035s] -- Check for working C compiler: /usr/bin/cc - skipped
+[5.037s] -- Detecting C compile features
+[5.038s] -- Detecting C compile features - done
+[5.184s] -- Detecting CXX compiler ABI info
+[5.579s] -- Detecting CXX compiler ABI info - done
+[5.591s] -- Check for working CXX compiler: /usr/bin/c++ - skipped
+[5.591s] -- Detecting CXX compile features
+[5.591s] -- Detecting CXX compile features - done
+[5.648s] -- Found ament_cmake: 2.5.5 (/opt/ros/jazzy/share/ament_cmake/cmake)
+[5.941s] -- Found Python3: /usr/bin/python3 (found version "3.12.3") found components: Interpreter 
+[6.107s] -- Override CMake install command with custom implementation using symlinks instead of copying resources
+[7.650s] [31mCMake Error at CMakeLists.txt:10 (find_package):
+[7.650s]   By not providing "Findur_robot_driver.cmake" in CMAKE_MODULE_PATH this
+[7.651s]   project has asked CMake to find a package configuration file provided by
+[7.651s]   "ur_robot_driver", but CMake did not find one.
+[7.651s] 
+[7.651s]   Could not find a package configuration file provided by "ur_robot_driver"
+[7.651s]   with any of the following names:
+[7.651s] 
+[7.651s]     ur_robot_driverConfig.cmake
+[7.651s]     ur_robot_driver-config.cmake
+[7.651s] 
+[7.651s]   Add the installation prefix of "ur_robot_driver" to CMAKE_PREFIX_PATH or
+[7.651s]   set "ur_robot_driver_DIR" to a directory containing one of the above files.
+[7.651s]   If "ur_robot_driver" provides a separate development package or SDK, be
+[7.651s]   sure it has been installed.
+[7.652s] 
+[7.652s] [0m
+[7.652s] -- Configuring incomplete, errors occurred!
+[7.666s] Invoked command in '/home/fillipg/UR-Prosjekt/build/ur_project_bringup' returned '1': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/fillipg/AIS2105_ws/install/reference_input:/home/fillipg/AIS2105_ws/install/qube_description:/home/fillipg/AIS2105_ws/install/qube_controller:/home/fillipg/AIS2105_ws/install/qube_bringup:/home/fillipg/AIS2105_ws/install/joint_simulator:/opt/ros/jazzy DEBUGINFOD_URLS=https://debuginfod.ubuntu.com /usr/bin/cmake /home/fillipg/UR-Prosjekt/src/ur_project_bringup -DAMENT_CMAKE_SYMLINK_INSTALL=1 -DCMAKE_INSTALL_PREFIX=/home/fillipg/UR-Prosjekt/install/ur_project_bringup

@@ -1,0 +1,15 @@
+/home/fillipg/UR-Prosjekt/install/ur_project_bringup/share/ament_index/resource_index/package_run_dependencies/ur_project_bringup
+/home/fillipg/UR-Prosjekt/install/ur_project_bringup/share/ament_index/resource_index/parent_prefix_path/ur_project_bringup
+/home/fillipg/UR-Prosjekt/install/ur_project_bringup/share/ur_project_bringup/environment/ament_prefix_path.sh
+/home/fillipg/UR-Prosjekt/install/ur_project_bringup/share/ur_project_bringup/environment/ament_prefix_path.dsv
+/home/fillipg/UR-Prosjekt/install/ur_project_bringup/share/ur_project_bringup/environment/path.sh
+/home/fillipg/UR-Prosjekt/install/ur_project_bringup/share/ur_project_bringup/environment/path.dsv
+/home/fillipg/UR-Prosjekt/install/ur_project_bringup/share/ur_project_bringup/local_setup.bash
+/home/fillipg/UR-Prosjekt/install/ur_project_bringup/share/ur_project_bringup/local_setup.sh
+/home/fillipg/UR-Prosjekt/install/ur_project_bringup/share/ur_project_bringup/local_setup.zsh
+/home/fillipg/UR-Prosjekt/install/ur_project_bringup/share/ur_project_bringup/local_setup.dsv
+/home/fillipg/UR-Prosjekt/install/ur_project_bringup/share/ur_project_bringup/package.dsv
+/home/fillipg/UR-Prosjekt/install/ur_project_bringup/share/ament_index/resource_index/packages/ur_project_bringup
+/home/fillipg/UR-Prosjekt/install/ur_project_bringup/share/ur_project_bringup/cmake/ur_project_bringupConfig.cmake
+/home/fillipg/UR-Prosjekt/install/ur_project_bringup/share/ur_project_bringup/cmake/ur_project_bringupConfig-version.cmake
+/home/fillipg/UR-Prosjekt/install/ur_project_bringup/share/ur_project_bringup/package.xml

@@ -1,0 +1,1 @@
+/home/fillipg/UR-Prosjekt/build/ur_project_bringup/ament_cmake_core/ur_project_bringupConfig-version.cmake

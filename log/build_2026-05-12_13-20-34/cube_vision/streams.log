@@ -1,0 +1,22 @@
+[3.413s] Invoking command in '/home/fillipg/UR-Prosjekt/build/cube_vision': DEBUGINFOD_URLS=https://debuginfod.ubuntu.com PYTHONPATH=/home/fillipg/UR-Prosjekt/build/cube_vision/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/fillipg/UR-Prosjekt/install/cube_vision/lib/python3.12/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py develop --editable --build-directory /home/fillipg/UR-Prosjekt/build/cube_vision/build --no-deps symlink_data
+[3.989s] running develop
+[4.298s] running egg_info
+[4.299s] creating cube_vision.egg-info
+[4.325s] writing cube_vision.egg-info/PKG-INFO
+[4.326s] writing dependency_links to cube_vision.egg-info/dependency_links.txt
+[4.326s] writing requirements to cube_vision.egg-info/requires.txt
+[4.327s] writing top-level names to cube_vision.egg-info/top_level.txt
+[4.327s] writing manifest file 'cube_vision.egg-info/SOURCES.txt'
+[4.393s] reading manifest file 'cube_vision.egg-info/SOURCES.txt'
+[4.395s] writing manifest file 'cube_vision.egg-info/SOURCES.txt'
+[4.428s] running build_ext
+[4.429s] Creating /home/fillipg/UR-Prosjekt/install/cube_vision/lib/python3.12/site-packages/cube-vision.egg-link (link to .)
+[4.431s] 
+[4.432s] Installed /home/fillipg/UR-Prosjekt/build/cube_vision
+[4.432s] running symlink_data
+[4.432s] creating /home/fillipg/UR-Prosjekt/install/cube_vision/share/ament_index
+[4.434s] creating /home/fillipg/UR-Prosjekt/install/cube_vision/share/ament_index/resource_index
+[4.435s] creating /home/fillipg/UR-Prosjekt/install/cube_vision/share/ament_index/resource_index/packages
+[4.436s] symbolically linking /home/fillipg/UR-Prosjekt/build/cube_vision/resource/cube_vision -> /home/fillipg/UR-Prosjekt/install/cube_vision/share/ament_index/resource_index/packages
+[4.438s] symbolically linking /home/fillipg/UR-Prosjekt/build/cube_vision/package.xml -> /home/fillipg/UR-Prosjekt/install/cube_vision/share/cube_vision
+[4.568s] Invoked command in '/home/fillipg/UR-Prosjekt/build/cube_vision' returned '0': DEBUGINFOD_URLS=https://debuginfod.ubuntu.com PYTHONPATH=/home/fillipg/UR-Prosjekt/build/cube_vision/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/fillipg/UR-Prosjekt/install/cube_vision/lib/python3.12/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py develop --editable --build-directory /home/fillipg/UR-Prosjekt/build/cube_vision/build --no-deps symlink_data

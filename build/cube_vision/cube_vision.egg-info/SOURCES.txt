@@ -1,0 +1,11 @@
+package.xml
+setup.cfg
+setup.py
+cube_vision/__init__.py
+cube_vision.egg-info/PKG-INFO
+cube_vision.egg-info/SOURCES.txt
+cube_vision.egg-info/dependency_links.txt
+cube_vision.egg-info/requires.txt
+cube_vision.egg-info/top_level.txt
+cube_vision.egg-info/zip-safe
+resource/cube_vision
