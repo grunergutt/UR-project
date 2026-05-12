@@ -1,1 +1,0 @@
-/home/fillipg/UR-Prosjekt/build/ur_project_bringup/ament_cmake_environment_hooks/local_setup.sh

@@ -1,1 +1,0 @@
-/home/fillipg/UR-Prosjekt/src/cube_vision/setup.py

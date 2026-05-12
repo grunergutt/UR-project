@@ -1,1 +1,0 @@
-/home/fillipg/UR-Prosjekt/src/robot_control/setup.py
