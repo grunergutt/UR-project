@@ -241,9 +241,13 @@ class CubeDetector(Node):
 def main(args=None):
     rclpy.init(args=args)
     node = CubeDetector()
-    rclpy.spin(node)
-    node.destroy_node()
-    rclpy.shutdown()
+    executor = rclpy.executors.MultiThreadedExecutor()
+    executor.add_node(node)
+    try:
+        executor.spin()
+    finally:
+        node.destroy_node()
+        rclpy.shutdown()
 
 
 if __name__ == '__main__':

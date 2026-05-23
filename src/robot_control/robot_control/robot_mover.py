@@ -14,9 +14,6 @@ Services:
   /move_to_pose   (robot_control custom – bruker Trigger med JSON i message)
 """
 
-import json
-import math
-
 import rclpy
 from rclpy.node import Node
 from rclpy.action import ActionClient
@@ -71,6 +68,8 @@ class RobotMover(Node):
         self.declare_parameter('robot.controller',
                                'scaled_joint_trajectory_controller')
         self.declare_parameter('calibration.table_z', 0.01)
+        self.declare_parameter('target_joints', [0.0] * 6)
+        self.declare_parameter('target_pose', [0.0] * 7)
 
         controller = self.get_parameter('robot.controller').value
 
@@ -169,7 +168,6 @@ class RobotMover(Node):
                   "{}" -- men target settes via parameter.
         For programmatisk bruk: sett parameter 'target_joints' før kall.
         """
-        self.declare_parameter('target_joints', [0.0] * 6)
         joints = self.get_parameter('target_joints').value
         self.get_logger().info(f'Beveger til joints: {joints}')
         success = self._send_joint_goal(joints)
@@ -182,7 +180,6 @@ class RobotMover(Node):
         Flytt til en kartesisk pose via MoveIt.
         Sett parameter 'target_pose' = [x, y, z, qx, qy, qz, qw] før kall.
         """
-        self.declare_parameter('target_pose', [0.0] * 7)
         pose_vals = self.get_parameter('target_pose').value
 
         if len(pose_vals) != 7:
@@ -371,9 +368,13 @@ class RobotMover(Node):
 def main(args=None):
     rclpy.init(args=args)
     node = RobotMover()
-    rclpy.spin(node)
-    node.destroy_node()
-    rclpy.shutdown()
+    executor = rclpy.executors.MultiThreadedExecutor()
+    executor.add_node(node)
+    try:
+        executor.spin()
+    finally:
+        node.destroy_node()
+        rclpy.shutdown()
 
 
 if __name__ == '__main__':

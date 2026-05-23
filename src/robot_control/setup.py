@@ -26,6 +26,7 @@ setup(
         'console_scripts': [
             'robot_mover = robot_control.robot_mover:main',
             'coordinator = robot_control.coordinator:main',
+            'control_composed = robot_control.control_composition:main',
         ],
     },
 )

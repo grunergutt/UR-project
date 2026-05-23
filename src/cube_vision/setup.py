@@ -26,6 +26,7 @@ setup(
         'console_scripts': [
             'cube_detector = cube_vision.cube_detector:main',
             'coordinate_transformer = cube_vision.coordinate_transformer:main',
+            'vision_composed = cube_vision.vision_composition:main',
         ],
     },
 )
