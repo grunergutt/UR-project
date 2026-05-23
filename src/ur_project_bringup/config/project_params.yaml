@@ -1,0 +1,53 @@
+# ============================================
+# UR-project – sentral konfigurasjon
+# ============================================
+# Wildcard /** betyr at alle noder leser disse parametrene.
+
+/**:
+  ros__parameters:
+
+    # --- Robot ---
+    robot:
+      ur_type: "ur5e"
+      robot_ip: "143.25.151.5"
+      controller: "scaled_joint_trajectory_controller"
+
+    # --- Posisjoner (joint-verdier i radianer) ---
+    positions:
+      home: [0.0, -1.5708, 1.5708, 0.0, 0.0, 0.0]
+      photo: [0.0, -1.2, 1.4, -1.77, -1.5708, 0.0]
+      safe_z_offset: 0.10
+      search_positions: [
+        0.3, -1.2, 1.4, -1.77, -1.5708, 0.0,
+        -0.3, -1.2, 1.4, -1.77, -1.5708, 0.0,
+        0.0, -1.0, 1.2, -1.77, -1.5708, 0.0
+      ]
+
+    # --- Kamera ---
+    camera:
+      image_topic: "/camera/color/image_raw"
+      camera_info_topic: "/camera/color/camera_info"
+
+    # --- Fargedeteksjon (HSV-terskler) ---
+    color_thresholds:
+      red:
+        lower1: [0, 120, 70]
+        upper1: [10, 255, 255]
+        lower2: [170, 120, 70]
+        upper2: [180, 255, 255]
+      yellow:
+        lower: [20, 100, 100]
+        upper: [35, 255, 255]
+      blue:
+        lower: [100, 150, 50]
+        upper: [130, 255, 255]
+
+    # --- Deteksjon ---
+    detection:
+      min_contour_area: 500
+      max_search_attempts: 3
+
+    # --- Koordinattransformasjon ---
+    calibration:
+      calibration_points: []
+      table_z: 0.01
