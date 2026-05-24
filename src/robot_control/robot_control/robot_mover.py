@@ -66,7 +66,7 @@ class RobotMover(Node):
                                [0.0, -1.2, 1.4, -1.77, -1.5708, 0.0])
         self.declare_parameter('positions.safe_z_offset', 0.10)
         self.declare_parameter('robot.controller',
-                               'scaled_joint_trajectory_controller')
+                               'joint_trajectory_controller')
         self.declare_parameter('calibration.table_z', 0.01)
         self.declare_parameter('target_joints', [0.0] * 6)
         self.declare_parameter('target_pose', [0.0] * 7)
@@ -374,7 +374,8 @@ def main(args=None):
         executor.spin()
     finally:
         node.destroy_node()
-        rclpy.shutdown()
+        if rclpy.ok():
+            rclpy.shutdown()
 
 
 if __name__ == '__main__':
