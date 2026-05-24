@@ -9,8 +9,8 @@
     # --- Robot ---
     robot:
       ur_type: "ur5e"
-      robot_ip: "143.25.151.5"
-      controller: "scaled_joint_trajectory_controller"
+      robot_ip: "143.25.150.38"
+      controller: "joint_trajectory_controller"
 
     # --- Posisjoner (joint-verdier i radianer) ---
     positions:
