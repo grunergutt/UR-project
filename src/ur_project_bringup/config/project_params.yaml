@@ -9,7 +9,7 @@
     # --- Robot ---
     robot:
       ur_type: "ur5e"
-      robot_ip: "143.25.151.5"
+      robot_ip: "143.25.151.38"
       controller: "scaled_joint_trajectory_controller"
 
     # --- Posisjoner (joint-verdier i radianer) ---
@@ -49,5 +49,7 @@
 
     # --- Koordinattransformasjon ---
     calibration:
-      calibration_points: []
+      # Fyll inn kalibreringspunkter som flat liste: [px1,py1,rx1,ry1, px2,py2,rx2,ry2, ...]
+      # Trenger minst 4 punktpar (16 verdier). [0.0] er en plassholder.
+      calibration_points: [0.0]
       table_z: 0.01

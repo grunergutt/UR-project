@@ -36,7 +36,7 @@ def main(args=None):
     finally:
         detector.destroy_node()
         transformer.destroy_node()
-        rclpy.shutdown()
+        rclpy.try_shutdown()
 
 
 if __name__ == '__main__':

@@ -14,10 +14,15 @@ Services:
   /move_to_pose   (robot_control custom – bruker Trigger med JSON i message)
 """
 
+import json
+import math
+import time
+
 import rclpy
 from rclpy.node import Node
 from rclpy.action import ActionClient
 from rclpy.callback_groups import ReentrantCallbackGroup
+from rclpy.executors import MultiThreadedExecutor
 
 from control_msgs.action import FollowJointTrajectory
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
@@ -68,8 +73,6 @@ class RobotMover(Node):
         self.declare_parameter('robot.controller',
                                'scaled_joint_trajectory_controller')
         self.declare_parameter('calibration.table_z', 0.01)
-        self.declare_parameter('target_joints', [0.0] * 6)
-        self.declare_parameter('target_pose', [0.0] * 7)
 
         controller = self.get_parameter('robot.controller').value
 
@@ -143,6 +146,19 @@ class RobotMover(Node):
             )
 
     # ------------------------------------------------------------------
+    # Hjelpemetode for å vente på futures uten å spinne executoren
+    # ------------------------------------------------------------------
+    def _wait_for_future(self, future, timeout_sec=10.0):
+        """Vent på at en future fullføres uten å kalle spin (unngår re-entrant spin)."""
+        start = time.time()
+        while not future.done():
+            if time.time() - start > timeout_sec:
+                self.get_logger().warn('Timeout ved venting på future')
+                return False
+            time.sleep(0.05)
+        return True
+
+    # ------------------------------------------------------------------
     # Service callbacks
     # ------------------------------------------------------------------
     def home_callback(self, request, response):
@@ -168,6 +184,7 @@ class RobotMover(Node):
                   "{}" -- men target settes via parameter.
         For programmatisk bruk: sett parameter 'target_joints' før kall.
         """
+        self.declare_parameter('target_joints', [0.0] * 6)
         joints = self.get_parameter('target_joints').value
         self.get_logger().info(f'Beveger til joints: {joints}')
         success = self._send_joint_goal(joints)
@@ -180,6 +197,7 @@ class RobotMover(Node):
         Flytt til en kartesisk pose via MoveIt.
         Sett parameter 'target_pose' = [x, y, z, qx, qy, qz, qw] før kall.
         """
+        self.declare_parameter('target_pose', [0.0] * 7)
         pose_vals = self.get_parameter('target_pose').value
 
         if len(pose_vals) != 7:
@@ -234,7 +252,7 @@ class RobotMover(Node):
 
         # Send og vent på resultat
         send_future = self.trajectory_client.send_goal_async(goal)
-        rclpy.spin_until_future_complete(self, send_future, timeout_sec=5.0)
+        self._wait_for_future(send_future, timeout_sec=5.0)
 
         goal_handle = send_future.result()
         if not goal_handle or not goal_handle.accepted:
@@ -243,8 +261,7 @@ class RobotMover(Node):
 
         self.get_logger().info('Joint-goal akseptert – venter...')
         result_future = goal_handle.get_result_async()
-        rclpy.spin_until_future_complete(self, result_future,
-                                         timeout_sec=duration_sec + 10.0)
+        self._wait_for_future(result_future, timeout_sec=duration_sec + 10.0)
 
         result = result_future.result()
         if result and result.result.error_code == 0:
@@ -344,7 +361,7 @@ class RobotMover(Node):
 
         # Send og vent
         send_future = self.moveit_client.send_goal_async(goal)
-        rclpy.spin_until_future_complete(self, send_future, timeout_sec=10.0)
+        self._wait_for_future(send_future, timeout_sec=10.0)
 
         goal_handle = send_future.result()
         if not goal_handle or not goal_handle.accepted:
@@ -353,7 +370,7 @@ class RobotMover(Node):
 
         self.get_logger().info('MoveIt planlegger og kjører...')
         result_future = goal_handle.get_result_async()
-        rclpy.spin_until_future_complete(self, result_future, timeout_sec=30.0)
+        self._wait_for_future(result_future, timeout_sec=30.0)
 
         result = result_future.result()
         if result and result.result.error_code.val == 1:  # SUCCESS
@@ -368,7 +385,7 @@ class RobotMover(Node):
 def main(args=None):
     rclpy.init(args=args)
     node = RobotMover()
-    executor = rclpy.executors.MultiThreadedExecutor()
+    executor = MultiThreadedExecutor()
     executor.add_node(node)
     try:
         executor.spin()

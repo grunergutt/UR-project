@@ -13,9 +13,12 @@ States:
   IDLE → HOME → PHOTO → DETECT → MOVE_TO_CUBE → SEARCH → DONE / ERROR
 """
 
+import time
+
 import rclpy
 from rclpy.node import Node
 from rclpy.callback_groups import ReentrantCallbackGroup
+from rclpy.executors import MultiThreadedExecutor
 
 from geometry_msgs.msg import PoseArray
 from std_srvs.srv import Trigger
@@ -296,6 +299,16 @@ class Coordinator(Node):
     # ------------------------------------------------------------------
     # Hjelpemetoder
     # ------------------------------------------------------------------
+    def _wait_for_future(self, future, timeout_sec=10.0):
+        """Vent på at en future fullføres uten å kalle spin."""
+        start = time.time()
+        while not future.done():
+            if time.time() - start > timeout_sec:
+                self.get_logger().warn('Timeout ved venting på future')
+                return False
+            time.sleep(0.05)
+        return True
+
     def _call_trigger(self, name, client, timeout=30.0):
         """Kall en Trigger-service og vent på svar."""
         if not client.wait_for_service(timeout_sec=10.0):
@@ -303,7 +316,7 @@ class Coordinator(Node):
             return False
 
         future = client.call_async(Trigger.Request())
-        rclpy.spin_until_future_complete(self, future, timeout_sec=timeout)
+        self._wait_for_future(future, timeout_sec=timeout)
 
         if future.result() is None:
             self.get_logger().error(f'{name} ga ingen respons')
@@ -348,7 +361,7 @@ class Coordinator(Node):
         req.parameters = [param]
 
         future = set_client.call_async(req)
-        rclpy.spin_until_future_complete(self, future, timeout_sec=5.0)
+        self._wait_for_future(future, timeout_sec=5.0)
 
         # Kall /move_to_pose
         return self._call_trigger('/move_to_pose', self.pose_client, timeout=30.0)
@@ -379,15 +392,13 @@ class Coordinator(Node):
         req.parameters = [param]
 
         future = set_client.call_async(req)
-        rclpy.spin_until_future_complete(self, future, timeout_sec=5.0)
+        self._wait_for_future(future, timeout_sec=5.0)
 
         return self._call_trigger('/move_to_joints', self.joints_client)
 
     def _spin_wait(self, seconds):
-        """Spin noden i et antall sekunder (for å motta meldinger)."""
-        end_time = self.get_clock().now().nanoseconds + int(seconds * 1e9)
-        while self.get_clock().now().nanoseconds < end_time:
-            rclpy.spin_once(self, timeout_sec=0.1)
+        """Vent i et antall sekunder (meldinger behandles av MultiThreadedExecutor)."""
+        time.sleep(seconds)
 
     def _error(self, msg):
         """Sett state til ERROR og logg."""
@@ -399,7 +410,7 @@ class Coordinator(Node):
 def main(args=None):
     rclpy.init(args=args)
     node = Coordinator()
-    executor = rclpy.executors.MultiThreadedExecutor()
+    executor = MultiThreadedExecutor()
     executor.add_node(node)
     try:
         executor.spin()

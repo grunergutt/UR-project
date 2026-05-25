@@ -32,7 +32,8 @@ class CoordinateTransformer(Node):
 
         # --- Parametre ---
         # Kalibreringspunkter: liste av [piksel_x, piksel_y, robot_x, robot_y]
-        self.declare_parameter('calibration.calibration_points', [])
+        # Standardverdi [0.0] fordi ROS2 ikke kan bestemme typen til en tom liste
+        self.declare_parameter('calibration.calibration_points', [0.0])
 
         # Fast z-høyde for robotmål (bordflate + offset)
         self.declare_parameter('calibration.table_z', 0.01)
@@ -72,9 +73,12 @@ class CoordinateTransformer(Node):
         Beregn homografi-matrisen fra kalibreringspunktene.
         Trenger minst 4 punktpar [piksel_x, piksel_y, robot_x, robot_y].
         """
-        raw = self.get_parameter('calibration.calibration_points').value
+        try:
+            raw = self.get_parameter('calibration.calibration_points').value
+        except Exception:
+            raw = None
 
-        if not raw or len(raw) < 4:
+        if not raw or len(raw) < 16:
             self.get_logger().warn(
                 'For få kalibreringspunkter – trenger minst 4 stk. '
                 'Transformer er deaktivert til kalibrering er gjort.'
@@ -198,13 +202,9 @@ class CoordinateTransformer(Node):
 def main(args=None):
     rclpy.init(args=args)
     node = CoordinateTransformer()
-    executor = rclpy.executors.MultiThreadedExecutor()
-    executor.add_node(node)
-    try:
-        executor.spin()
-    finally:
-        node.destroy_node()
-        rclpy.shutdown()
+    rclpy.spin(node)
+    node.destroy_node()
+    rclpy.shutdown()
 
 
 if __name__ == '__main__':
