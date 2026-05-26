@@ -8,13 +8,13 @@ Tilbyr services for å flytte roboten til:
   - Kartesisk pose    (/move_to_pose)    – via MoveIt MoveGroup
 
 Services:
-  /move_to_home   (std_srvs/Trigger)
-  /move_to_photo  (std_srvs/Trigger)
-  /move_to_joints (robot_control custom – bruker Trigger med JSON i message)
-  /move_to_pose   (robot_control custom – bruker Trigger med JSON i message)
+  /move_to_home      (std_srvs/Trigger)
+  /move_to_photo     (std_srvs/Trigger)
+  /move_to_joints    (std_srvs/Trigger – sett target_joints-parameteren først)
+  /move_to_pose      (std_srvs/Trigger – sett target_pose [x,y,z,qx,qy,qz,qw] først)
+  /move_to_pose_rpy  (std_srvs/Trigger – sett target_pose_rpy [x,y,z,roll,pitch,yaw] først)
 """
 
-import json
 import math
 import time
 
@@ -66,13 +66,17 @@ class RobotMover(Node):
 
         # --- Parametre ---
         self.declare_parameter('positions.home',
-                               [0.0, -1.5708, 1.5708, 0.0, 0.0, 0.0])
+                               [0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
         self.declare_parameter('positions.photo',
                                [0.0, -1.2, 1.4, -1.77, -1.5708, 0.0])
         self.declare_parameter('positions.safe_z_offset', 0.10)
         self.declare_parameter('robot.controller',
                                'scaled_joint_trajectory_controller')
         self.declare_parameter('calibration.table_z', 0.01)
+        self.declare_parameter('target_joints', [0.0] * 6)
+        self.declare_parameter('target_pose', [0.0] * 7)
+        # [x, y, z, roll, pitch, yaw] i meter og radianer
+        self.declare_parameter('target_pose_rpy', [0.0] * 6)
 
         controller = self.get_parameter('robot.controller').value
 
@@ -114,6 +118,11 @@ class RobotMover(Node):
         self.create_service(
             Trigger, '/move_to_pose',
             self.pose_callback,
+            callback_group=self.cb_group,
+        )
+        self.create_service(
+            Trigger, '/move_to_pose_rpy',
+            self.rpy_pose_callback,
             callback_group=self.cb_group,
         )
 
@@ -184,7 +193,6 @@ class RobotMover(Node):
                   "{}" -- men target settes via parameter.
         For programmatisk bruk: sett parameter 'target_joints' før kall.
         """
-        self.declare_parameter('target_joints', [0.0] * 6)
         joints = self.get_parameter('target_joints').value
         self.get_logger().info(f'Beveger til joints: {joints}')
         success = self._send_joint_goal(joints)
@@ -197,7 +205,6 @@ class RobotMover(Node):
         Flytt til en kartesisk pose via MoveIt.
         Sett parameter 'target_pose' = [x, y, z, qx, qy, qz, qw] før kall.
         """
-        self.declare_parameter('target_pose', [0.0] * 7)
         pose_vals = self.get_parameter('target_pose').value
 
         if len(pose_vals) != 7:
@@ -213,6 +220,51 @@ class RobotMover(Node):
         response.success = success
         response.message = 'Pose nådd ✓' if success else 'MoveIt feil'
         return response
+
+    def rpy_pose_callback(self, request, response):
+        """
+        Flytt til en kartesisk pose oppgitt som [x, y, z, roll, pitch, yaw].
+        Alle verdier i meter og radianer.
+
+        Bruk fra terminal:
+          ros2 param set /robot_mover target_pose_rpy "[0.5, 0.0, 0.3, 0.0, 3.14159, 0.0]"
+          ros2 service call /move_to_pose_rpy std_srvs/srv/Trigger "{}"
+        """
+        vals = self.get_parameter('target_pose_rpy').value
+
+        if len(vals) != 6:
+            response.success = False
+            response.message = 'target_pose_rpy må ha 6 verdier: [x, y, z, roll, pitch, yaw]'
+            return response
+
+        x, y, z, roll, pitch, yaw = vals
+        qx, qy, qz, qw = self._rpy_to_quaternion(roll, pitch, yaw)
+
+        self.get_logger().info(
+            f'Beveger til RPY-pose: xyz=({x:.3f}, {y:.3f}, {z:.3f}) '
+            f'rpy=({math.degrees(roll):.1f}°, {math.degrees(pitch):.1f}°, {math.degrees(yaw):.1f}°)'
+        )
+
+        success = self._send_cartesian_goal([x, y, z, qx, qy, qz, qw])
+        response.success = success
+        response.message = 'Pose nådd ✓' if success else 'MoveIt feil'
+        return response
+
+    # ------------------------------------------------------------------
+    # Konverteringshjelpere
+    # ------------------------------------------------------------------
+    @staticmethod
+    def _rpy_to_quaternion(roll, pitch, yaw):
+        """Konverter roll/pitch/yaw (radianer, ZYX-konvensjon) til kvaternion."""
+        cy, sy = math.cos(yaw * 0.5),   math.sin(yaw * 0.5)
+        cp, sp = math.cos(pitch * 0.5), math.sin(pitch * 0.5)
+        cr, sr = math.cos(roll * 0.5),  math.sin(roll * 0.5)
+
+        qw = cr * cp * cy + sr * sp * sy
+        qx = sr * cp * cy - cr * sp * sy
+        qy = cr * sp * cy + sr * cp * sy
+        qz = cr * cp * sy - sr * sp * cy
+        return qx, qy, qz, qw
 
     # ------------------------------------------------------------------
     # Offentlig metode for coordinator
