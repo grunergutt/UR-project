@@ -81,6 +81,17 @@ def generate_launch_description():
         output='screen',
     )
 
+    # --- Debug: kameravisning ---
+    # Viser /cube_detector/debug_image i et eget vindu (krever ros-<distro>-image-view).
+    # Sett debug.show_camera: false i project_params.yaml for å deaktivere publisering.
+    debug_image_view_node = Node(
+        package='image_view',
+        executable='image_view',
+        name='debug_image_view',
+        remappings=[('image', '/cube_detector/debug_image')],
+        output='screen',
+    )
+
     return LaunchDescription([
         config_file_arg,
         ur_type_arg,
@@ -90,5 +101,6 @@ def generate_launch_description():
         coordinate_transformer_node,
         robot_control_node,
         coordinator_node,
+        debug_image_view_node,
     ])
 

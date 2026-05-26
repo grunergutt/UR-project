@@ -77,6 +77,7 @@ class CubeDetector(Node):
 
         # --- Publisher ---
         self.cube_pub = self.create_publisher(PoseArray, '/cube_positions', 10)
+        self.debug_pub = self.create_publisher(Image, '/cube_detector/debug_image', 10)
 
         # --- Service ---
         self.detect_srv = self.create_service(
@@ -257,22 +258,27 @@ class CubeDetector(Node):
     # Debug-visning
     # ------------------------------------------------------------------
     def _show_debug_frame(self, cv_image):
-        """Vis kamerabilde med detekterte kuber tegnet inn."""
+        """Publiser kamerabilde med detekterte kuber tegnet inn på /cube_detector/debug_image."""
         display = cv_image.copy()
 
-        color_bgr = {0.0: (0, 0, 255), 1.0: (0, 255, 255), 2.0: (255, 0, 0)}
-        color_label = {0.0: 'rod', 1.0: 'gul', 2.0: 'bla'}
+        color_bgr   = {0.0: (0, 0, 255), 1.0: (0, 255, 255), 2.0: (255, 0, 0)}
+        color_label = {0.0: 'rod',        1.0: 'gul',          2.0: 'bla'}
 
         for pose in self.last_results.poses:
             cx, cy = int(pose.position.x), int(pose.position.y)
-            bgr = color_bgr.get(pose.position.z, (255, 255, 255))
+            bgr   = color_bgr.get(pose.position.z, (255, 255, 255))
             label = color_label.get(pose.position.z, '?')
             cv2.circle(display, (cx, cy), 15, bgr, 3)
             cv2.putText(display, label, (cx + 18, cy - 10),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.7, bgr, 2)
 
-        cv2.imshow('Cube Detector', display)
-        cv2.waitKey(1)
+        try:
+            debug_msg = self.bridge.cv2_to_imgmsg(display, 'bgr8')
+            debug_msg.header.stamp = self.get_clock().now().to_msg()
+            debug_msg.header.frame_id = 'camera_frame'
+            self.debug_pub.publish(debug_msg)
+        except Exception as e:
+            self.get_logger().error(f'Feil ved publisering av debug-bilde: {e}')
 
 
 def main(args=None):
@@ -286,7 +292,6 @@ def main(args=None):
         pass
     finally:
         node.destroy_node()
-        cv2.destroyAllWindows()
         rclpy.try_shutdown()
 
 
