@@ -50,15 +50,20 @@ class CubeDetector(Node):
         # Deteksjon
         self.declare_parameter('detection.min_contour_area', 500)
 
+        # Debug
+        self.declare_parameter('debug.show_camera', True)
+
         # --- Les parametre ---
         image_topic = self.get_parameter('camera.image_topic').value
         self._load_color_thresholds()
 
         self.min_area = self.get_parameter('detection.min_contour_area').value
+        self.show_camera = self.get_parameter('debug.show_camera').value
 
         # --- Intern tilstand ---
         self.bridge = CvBridge()
         self.latest_image = None
+        self.latest_cv_image = None
         self.detection_requested = False
         self.last_results = PoseArray()
 
@@ -126,6 +131,15 @@ class CubeDetector(Node):
         """Lagre siste bilde. Kjør deteksjon hvis forespurt."""
         self.latest_image = msg
 
+        try:
+            self.latest_cv_image = self.bridge.imgmsg_to_cv2(msg, 'bgr8')
+        except Exception as e:
+            self.get_logger().error(f'Kunne ikke konvertere bilde: {e}')
+            return
+
+        if self.show_camera:
+            self._show_debug_frame(self.latest_cv_image)
+
         if self.detection_requested:
             self.detection_requested = False
             self._run_detection()
@@ -153,12 +167,11 @@ class CubeDetector(Node):
     # ------------------------------------------------------------------
     def _run_detection(self):
         """Kjør fargesegmentering på siste mottatte bilde."""
-        try:
-            cv_image = self.bridge.imgmsg_to_cv2(self.latest_image, 'bgr8')
-        except Exception as e:
-            self.get_logger().error(f'Kunne ikke konvertere bilde: {e}')
+        if self.latest_cv_image is None:
+            self.get_logger().error('Ingen kamerabilde tilgjengelig for deteksjon')
             return
 
+        cv_image = self.latest_cv_image
         hsv = cv2.cvtColor(cv_image, cv2.COLOR_BGR2HSV)
 
         # Gaussisk blur for å redusere støy
@@ -184,6 +197,9 @@ class CubeDetector(Node):
 
         self.last_results = pose_array
         self.cube_pub.publish(pose_array)
+
+        if self.show_camera:
+            self._show_debug_frame(cv_image)
 
         self.get_logger().info(
             f'Deteksjon ferdig – fant {len(pose_array.poses)} kube(r)'
@@ -237,6 +253,27 @@ class CubeDetector(Node):
             for p in self.last_results.poses
         ]
 
+    # ------------------------------------------------------------------
+    # Debug-visning
+    # ------------------------------------------------------------------
+    def _show_debug_frame(self, cv_image):
+        """Vis kamerabilde med detekterte kuber tegnet inn."""
+        display = cv_image.copy()
+
+        color_bgr = {0.0: (0, 0, 255), 1.0: (0, 255, 255), 2.0: (255, 0, 0)}
+        color_label = {0.0: 'rod', 1.0: 'gul', 2.0: 'bla'}
+
+        for pose in self.last_results.poses:
+            cx, cy = int(pose.position.x), int(pose.position.y)
+            bgr = color_bgr.get(pose.position.z, (255, 255, 255))
+            label = color_label.get(pose.position.z, '?')
+            cv2.circle(display, (cx, cy), 15, bgr, 3)
+            cv2.putText(display, label, (cx + 18, cy - 10),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.7, bgr, 2)
+
+        cv2.imshow('Cube Detector', display)
+        cv2.waitKey(1)
+
 
 def main(args=None):
     rclpy.init(args=args)
@@ -249,6 +286,7 @@ def main(args=None):
         pass
     finally:
         node.destroy_node()
+        cv2.destroyAllWindows()
         rclpy.try_shutdown()
 
 

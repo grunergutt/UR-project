@@ -47,6 +47,10 @@
       min_contour_area: 500
       max_search_attempts: 3
 
+    # --- Debug ---
+    debug:
+      show_camera: true
+
     # --- Koordinattransformasjon ---
     calibration:
       # Fyll inn kalibreringspunkter som flat liste: [px1,py1,rx1,ry1, px2,py2,rx2,ry2, ...]
