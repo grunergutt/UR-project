@@ -1,0 +1,133 @@
+# robot_control
+
+ROS 2 package for controlling a Universal Robots arm. Provides joint-space and Cartesian motion services, and a state-machine coordinator that orchestrates a full detect-and-point-at-cubes sequence.
+
+## Overview
+
+`robot_control` contains two main nodes and a composition entry point:
+
+- **robot_mover** — Exposes ROS 2 services for moving the robot to predefined positions (home, photo, search) or to arbitrary joint/Cartesian targets. Joint motion uses the `FollowJointTrajectory` action, and Cartesian motion uses MoveIt's `MoveGroup` action.
+- **coordinator** — A state-machine node that orchestrates the full workflow: move to home → move to photo position → detect cubes → move to each cube in order (red → yellow → blue). If a color is missing, it searches from alternative viewpoints.
+- **control_composed** — Runs both nodes in a single process using a `MultiThreadedExecutor` (required to avoid deadlocks, since the coordinator calls services hosted by the mover).
+
+## Nodes
+
+### robot_mover
+
+Provides motion services for a UR robot via the joint trajectory controller and optionally MoveIt.
+
+**Services:**
+
+| Service | Type | Description |
+|---|---|---|
+| `/move_to_home` | `std_srvs/Trigger` | Move to the configured home joint position |
+| `/move_to_photo` | `std_srvs/Trigger` | Move to the configured photo-taking position |
+| `/move_to_search_position_1` | `std_srvs/Trigger` | Move to search position 1 |
+| `/move_to_search_position_2` | `std_srvs/Trigger` | Move to search position 2 |
+| `/move_to_search_position_3` | `std_srvs/Trigger` | Move to search position 3 |
+| `/move_to_joints` | `std_srvs/Trigger` | Move to arbitrary joint values (set `target_joints` parameter first) |
+| `/move_to_pose` | `std_srvs/Trigger` | Move to a Cartesian pose via MoveIt (set `target_pose` `[x,y,z,qx,qy,qz,qw]` first) |
+| `/move_to_pose_rpy` | `std_srvs/Trigger` | Move to a Cartesian pose using roll/pitch/yaw (set `target_pose_rpy` `[x,y,z,r,p,y]` first) |
+
+**Parameters:**
+
+| Parameter | Default | Description |
+|---|---|---|
+| `positions.home` | `[0, 0, 0, 0, 0, 0]` | Home position joint angles (radians) |
+| `positions.photo` | `[0, -1.2, 1.4, -1.77, -1.57, 0]` | Photo position joint angles |
+| `positions.search_positions` | (see config) | Flat list of search joint positions (6 values each) |
+| `positions.safe_z_offset` | `0.10` | Vertical offset above the table for safe approach (meters) |
+| `calibration.table_z` | `0.01` | Table surface Z-height in the robot frame |
+| `robot.controller` | `scaled_joint_trajectory_controller` | Name of the joint trajectory controller |
+| `target_joints` | `[0]*6` | Target for `/move_to_joints` |
+| `target_pose` | `[0]*7` | Target for `/move_to_pose` `[x,y,z,qx,qy,qz,qw]` |
+| `target_pose_rpy` | `[0]*6` | Target for `/move_to_pose_rpy` `[x,y,z,roll,pitch,yaw]` |
+
+**Action clients:**
+
+- `/<controller>/follow_joint_trajectory` (`FollowJointTrajectory`) — for joint-space motion
+- `/move_action` (`MoveGroup`) — for Cartesian motion via MoveIt (optional; gracefully disabled if `moveit_msgs` is not installed)
+
+### coordinator
+
+State-machine node that runs the complete cube-pointing sequence.
+
+**States:** `IDLE → HOME → PHOTO → DETECT → MOVE_TO_CUBE → SEARCH → DONE / ERROR`
+
+**Subscriptions:**
+
+| Topic | Type | Description |
+|---|---|---|
+| `/cube_positions_robot` | `geometry_msgs/PoseArray` | Cube positions in robot coordinates (from `coordinate_transformer`) |
+
+**Services provided:**
+
+| Service | Type | Description |
+|---|---|---|
+| `/start_sequence` | `std_srvs/Trigger` | Starts the full detect-and-point sequence |
+
+**Service clients used:** `/move_to_home`, `/move_to_photo`, `/detect_cubes`, `/move_to_joints`, `/move_to_pose`, and `/robot_mover/set_parameters`.
+
+**Parameters:**
+
+| Parameter | Default | Description |
+|---|---|---|
+| `detection.max_search_attempts` | `3` | Maximum number of alternative viewpoints to try when a color is missing |
+| `positions.safe_z_offset` | `0.10` | Vertical offset for safe approach |
+| `calibration.table_z` | `0.01` | Table surface Z-height |
+| `positions.search_positions` | (see config) | Alternative viewpoint joint values for search |
+
+**Sequence workflow:**
+
+1. Move to home position
+2. Move to photo position (overhead camera view)
+3. Trigger cube detection and coordinate transformation
+4. If any colors are missing, move to up to 3 alternative search positions and re-detect
+5. Move the end-effector to each detected cube in order: red → yellow → blue
+6. Return to home position
+
+## Dependencies
+
+- `rclpy`
+- `geometry_msgs`, `std_msgs`, `std_srvs`
+- `control_msgs`, `trajectory_msgs`
+- `builtin_interfaces`, `rcl_interfaces`
+- `tf2_ros`
+- `moveit_msgs`, `shape_msgs` (optional — Cartesian motion is disabled if not installed)
+
+## Usage
+
+Run nodes individually:
+
+```bash
+ros2 run robot_control robot_mover
+ros2 run robot_control coordinator
+```
+
+Run both nodes in a single composed process:
+
+```bash
+ros2 run robot_control control_composed
+```
+
+Start the full sequence:
+
+```bash
+ros2 service call /start_sequence std_srvs/srv/Trigger "{}"
+```
+
+Move to a specific Cartesian pose manually:
+
+```bash
+ros2 param set /robot_mover target_pose_rpy "[0.5, 0.0, 0.3, 0.0, 3.14159, 0.0]"
+ros2 service call /move_to_pose_rpy std_srvs/srv/Trigger "{}"
+```
+
+Parameters are typically loaded from `project_params.yaml` via the `ur_project_bringup` launch files.
+
+## Build
+
+```bash
+colcon build --packages-select robot_control
+source install/setup.bash
+```

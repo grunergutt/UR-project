@@ -1,0 +1,129 @@
+# cube_vision
+
+ROS 2 package for camera-based color detection of cubes and pixel-to-robot coordinate transformation. Part of a UR robot project that visually identifies red, yellow, and blue cubes on a workspace and maps their positions into the robot's coordinate frame.
+
+## Overview
+
+`cube_vision` contains two main nodes and a composition entry point:
+
+- **cube_detector** — Subscribes to a camera image topic, performs HSV color segmentation to detect red, yellow, and blue cubes, and publishes their pixel coordinates.
+- **coordinate_transformer** — Receives pixel coordinates from `cube_detector`, applies a homography transformation (calibrated from known point correspondences), and publishes the resulting positions in the robot's base frame.
+- **vision_composed** — Runs both nodes in a single process using a `MultiThreadedExecutor` for lower latency and reduced overhead.
+
+## Nodes
+
+### cube_detector
+
+Performs color-based cube detection using OpenCV HSV thresholding with morphological filtering.
+
+**Subscriptions:**
+
+| Topic | Type | Description |
+|---|---|---|
+| `/camera/color/image_raw` | `sensor_msgs/Image` | Input camera image (configurable via parameter) |
+
+**Publications:**
+
+| Topic | Type | Description |
+|---|---|---|
+| `/cube_positions` | `geometry_msgs/PoseArray` | Detected cube positions in pixel coordinates. Each pose encodes `x` (pixel column), `y` (pixel row), and `z` (color ID: 0 = red, 1 = yellow, 2 = blue) |
+| `/cube_detector/debug_image` | `sensor_msgs/Image` | Camera image with detected cubes annotated |
+
+**Services:**
+
+| Service | Type | Description |
+|---|---|---|
+| `/detect_cubes` | `std_srvs/Trigger` | Triggers a single detection pass on the next received frame |
+
+**Parameters:**
+
+| Parameter | Default | Description |
+|---|---|---|
+| `camera.image_topic` | `/camera/color/image_raw` | Camera topic to subscribe to |
+| `color_thresholds.red.lower1` | `[0, 120, 70]` | HSV lower bound for red range 1 |
+| `color_thresholds.red.upper1` | `[10, 255, 255]` | HSV upper bound for red range 1 |
+| `color_thresholds.red.lower2` | `[170, 120, 70]` | HSV lower bound for red range 2 |
+| `color_thresholds.red.upper2` | `[180, 255, 255]` | HSV upper bound for red range 2 |
+| `color_thresholds.yellow.lower` | `[20, 100, 100]` | HSV lower bound for yellow |
+| `color_thresholds.yellow.upper` | `[35, 255, 255]` | HSV upper bound for yellow |
+| `color_thresholds.blue.lower` | `[100, 150, 50]` | HSV lower bound for blue |
+| `color_thresholds.blue.upper` | `[130, 255, 255]` | HSV upper bound for blue |
+| `detection.min_contour_area` | `500` | Minimum contour area (pixels²) to count as a valid detection |
+| `debug.show_camera` | `true` | Publish annotated debug images |
+
+### coordinate_transformer
+
+Transforms pixel coordinates to robot-frame coordinates using a homography matrix computed from calibration point pairs.
+
+**Subscriptions:**
+
+| Topic | Type | Description |
+|---|---|---|
+| `/cube_positions` | `geometry_msgs/PoseArray` | Pixel coordinates from `cube_detector` |
+
+**Publications:**
+
+| Topic | Type | Description |
+|---|---|---|
+| `/cube_positions_robot` | `geometry_msgs/PoseArray` | Cube positions in the robot base frame (`base_link`). The color ID is preserved in `position.z`, and the orientation is set to a fixed downward-pointing quaternion |
+
+**Services:**
+
+| Service | Type | Description |
+|---|---|---|
+| `/calibrate_transform` | `std_srvs/Trigger` | Recomputes the homography matrix from the current calibration parameters |
+
+**Parameters:**
+
+| Parameter | Default | Description |
+|---|---|---|
+| `calibration.calibration_points` | `[0.0]` | Flat list of calibration point pairs `[px1, py1, rx1, ry1, px2, py2, rx2, ry2, ...]`. Requires at least 4 pairs (16 values) |
+| `calibration.table_z` | `0.01` | Z-height of the table surface in the robot frame (meters) |
+| `positions.safe_z_offset` | `0.10` | Vertical offset above the table for safe approach (meters) |
+
+## Dependencies
+
+- `rclpy`
+- `sensor_msgs`
+- `geometry_msgs`
+- `std_msgs`
+- `std_srvs`
+- `cv_bridge`
+- OpenCV (via `cv2`)
+- NumPy
+
+## Usage
+
+Run nodes individually:
+
+```bash
+ros2 run cube_vision cube_detector
+ros2 run cube_vision coordinate_transformer
+```
+
+Run both nodes in a single composed process:
+
+```bash
+ros2 run cube_vision vision_composed
+```
+
+Trigger a detection manually:
+
+```bash
+ros2 service call /detect_cubes std_srvs/srv/Trigger "{}"
+```
+
+Recalibrate the coordinate transform:
+
+```bash
+ros2 service call /calibrate_transform std_srvs/srv/Trigger "{}"
+```
+
+Parameters are typically loaded from `project_params.yaml` via the `ur_project_bringup` launch files.
+
+## Build
+
+```bash
+colcon build --packages-select cube_vision
+source install/setup.bash
+```
