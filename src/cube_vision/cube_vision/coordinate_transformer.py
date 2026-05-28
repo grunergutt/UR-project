@@ -170,11 +170,11 @@ class CoordinateTransformer(Node):
             pose_out.position.y = robot_y
             pose_out.position.z = pose_in.position.z  # behold farge-ID
 
-            # Sett orientasjon til "pekende rett ned" (quaternion)
-            pose_out.orientation.x = 1.0
-            pose_out.orientation.y = 0.0
-            pose_out.orientation.z = 0.0
-            pose_out.orientation.w = 0.0
+            # Sett orientasjon til "pekende rett ned" (quaternion fra kalibrering)
+            pose_out.orientation.x = -0.3787
+            pose_out.orientation.y = -0.9254
+            pose_out.orientation.z = 0.0118
+            pose_out.orientation.w = 0.0090
 
             robot_poses.poses.append(pose_out)
 

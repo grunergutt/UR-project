@@ -4,15 +4,19 @@ robot_mover.py – ROS2-node for robotbevegelse.
 Tilbyr services for å flytte roboten til:
   - Hjemmeposisjon    (/move_to_home)
   - Fotoposisjon      (/move_to_photo)
+  - Søkeposisjoner    (/move_to_search_position_1, _2, _3)
   - Vilkårlige joints (/move_to_joints)  – via FollowJointTrajectory
   - Kartesisk pose    (/move_to_pose)    – via MoveIt MoveGroup
 
 Services:
-  /move_to_home      (std_srvs/Trigger)
-  /move_to_photo     (std_srvs/Trigger)
-  /move_to_joints    (std_srvs/Trigger – sett target_joints-parameteren først)
-  /move_to_pose      (std_srvs/Trigger – sett target_pose [x,y,z,qx,qy,qz,qw] først)
-  /move_to_pose_rpy  (std_srvs/Trigger – sett target_pose_rpy [x,y,z,roll,pitch,yaw] først)
+  /move_to_home               (std_srvs/Trigger)
+  /move_to_photo              (std_srvs/Trigger)
+  /move_to_search_position_1  (std_srvs/Trigger)
+  /move_to_search_position_2  (std_srvs/Trigger)
+  /move_to_search_position_3  (std_srvs/Trigger)
+  /move_to_joints             (std_srvs/Trigger – sett target_joints-parameteren først)
+  /move_to_pose               (std_srvs/Trigger – sett target_pose [x,y,z,qx,qy,qz,qw] først)
+  /move_to_pose_rpy           (std_srvs/Trigger – sett target_pose_rpy [x,y,z,roll,pitch,yaw] først)
 """
 
 import math
@@ -70,6 +74,7 @@ class RobotMover(Node):
         self.declare_parameter('positions.photo',
                                [0.0, -1.2, 1.4, -1.77, -1.5708, 0.0])
         self.declare_parameter('positions.safe_z_offset', 0.10)
+        self.declare_parameter('positions.search_positions', [0.0] * 18)
         self.declare_parameter('robot.controller',
                                'scaled_joint_trajectory_controller')
         self.declare_parameter('calibration.table_z', 0.01)
@@ -125,6 +130,14 @@ class RobotMover(Node):
             self.rpy_pose_callback,
             callback_group=self.cb_group,
         )
+
+        # Søkeposisjoner 1–3
+        for i in range(1, 4):
+            self.create_service(
+                Trigger, f'/move_to_search_position_{i}',
+                lambda req, res, idx=i: self.search_callback(req, res, idx),
+                callback_group=self.cb_group,
+            )
 
         self.get_logger().info('RobotMover startet – venter på action-servere...')
         self._wait_for_servers()
@@ -184,6 +197,16 @@ class RobotMover(Node):
         success = self._send_joint_goal(joints)
         response.success = success
         response.message = 'Fotoposisjon ✓' if success else 'Feil ved bevegelse'
+        return response
+
+    def search_callback(self, request, response, index):
+        raw = self.get_parameter('positions.search_positions').value
+        start = (index - 1) * 6
+        joints = raw[start:start + 6]
+        self.get_logger().info(f'Beveger til søkeposisjon {index}...')
+        success = self._send_joint_goal(joints)
+        response.success = success
+        response.message = f'Søkeposisjon {index} ✓' if success else 'Feil ved bevegelse'
         return response
 
     def joints_callback(self, request, response):
