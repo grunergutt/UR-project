@@ -1,0 +1,98 @@
+# ur_project_bringup
+
+ROS 2 bringup package for a UR robot cube-detection project. Contains launch files and centralized configuration for starting all system components — camera driver, vision pipeline, and robot control — with a single command.
+
+## Overview
+
+This is a CMake/ament package that provides launch files and a shared YAML configuration. It ties together the `cube_vision` and `robot_control` packages along with the camera driver and UR robot driver.
+
+## Launch Files
+
+### project.launch.py
+
+Starts each node as a separate process (5 nodes total):
+
+- **v4l2_camera_node** — USB camera driver, publishing to `/camera/color/image_raw`
+- **cube_detector** — Color-based cube detection
+- **coordinate_transformer** — Pixel-to-robot coordinate mapping
+- **robot_mover** — Robot motion services
+- **coordinator** — Sequence orchestration state machine
+- **debug_image_view** — Displays the annotated detection image
+- **raw_image_view** — Displays the raw camera feed (only when `show_raw_camera:=true`)
+
+```bash
+ros2 launch ur_project_bringup project.launch.py
+```
+
+### project_composed.launch.py
+
+Composition variant that groups nodes into fewer processes for reduced overhead:
+
+- Camera driver (1 process)
+- Vision nodes composed: `cube_detector` + `coordinate_transformer` (1 process)
+- Control nodes composed: `robot_mover` + `coordinator` (1 process)
+- Image viewers
+
+```bash
+ros2 launch ur_project_bringup project_composed.launch.py
+```
+
+### Launch Arguments
+
+Both launch files accept the same arguments:
+
+| Argument | Default | Description |
+|---|---|---|
+| `config_file` | `<package_share>/config/project_params.yaml` | Path to the YAML configuration file |
+| `ur_type` | `ur5e` | UR robot model (`ur3`, `ur3e`, `ur5`, `ur5e`, `ur10`, `ur10e`) |
+| `robot_ip` | `143.25.150.5` | IP address of the robot controller |
+| `video_device` | `/dev/video2` | V4L2 camera device |
+| `show_raw_camera` | `false` | Open an additional window showing the raw camera feed |
+
+Example with overrides:
+
+```bash
+ros2 launch ur_project_bringup project.launch.py ur_type:=ur3e robot_ip:=192.168.1.100 video_device:=/dev/video0
+```
+
+## Configuration
+
+All parameters are defined in `config/project_params.yaml` and shared across all nodes via the `/**` wildcard. Key sections:
+
+- **robot** — Robot model, IP, and controller name
+- **positions** — Joint angles for home, photo, and search positions, plus the safe Z offset
+- **camera** — Image and camera info topic names
+- **color_thresholds** — HSV ranges for red, yellow, and blue detection
+- **detection** — Minimum contour area and maximum search attempts
+- **calibration** — Homography calibration points (pixel ↔ robot correspondences) and table Z-height
+- **debug** — Toggle debug image publishing
+
+## Dependencies
+
+- `ament_cmake`
+- `ur_robot_driver`
+- `robot_control`
+- `cube_vision`
+- `ros2launch`
+- `v4l2_camera` (camera driver)
+- `image_view` (debug visualization)
+
+## Build
+
+```bash
+colcon build --packages-select ur_project_bringup
+source install/setup.bash
+```
+
+## Quick Start
+
+1. Connect the UR robot and USB camera
+2. Start the UR robot driver separately (e.g., via `ur_robot_driver`)
+3. Launch the project:
+   ```bash
+   ros2 launch ur_project_bringup project.launch.py
+   ```
+4. Trigger the sequence:
+   ```bash
+   ros2 service call /start_sequence std_srvs/srv/Trigger "{}"
+   ```
