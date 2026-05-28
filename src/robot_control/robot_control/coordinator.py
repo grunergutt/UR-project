@@ -9,6 +9,10 @@ Orkestrerer hele flyten:
   5. Hvis en farge mangler: søk fra alternative posisjoner
   6. Hvis fortsatt ikke funnet: stopp og varsle
 
+Publiserer /active_camera_position (std_msgs/Int32) for å fortelle
+coordinate_transformer hvilken homografi som skal brukes:
+  0 = fotoposisjon, 1–3 = søkeposisjon 1–3
+
 States:
   IDLE → HOME → PHOTO → DETECT → MOVE_TO_CUBE → SEARCH → DONE / ERROR
 """
@@ -21,6 +25,7 @@ from rclpy.callback_groups import ReentrantCallbackGroup
 from rclpy.executors import MultiThreadedExecutor
 
 from geometry_msgs.msg import PoseArray
+from std_msgs.msg import Int32
 from std_srvs.srv import Trigger
 
 from enum import Enum, auto
@@ -55,13 +60,8 @@ class Coordinator(Node):
         self.declare_parameter('detection.max_search_attempts', 3)
         self.declare_parameter('positions.safe_z_offset', 0.10)
         self.declare_parameter('calibration.table_z', 0.01)
-
-        # Alternative fotoposisjoner for søk (joint-verdier).
-        # Legges til i config etterhvert – her er fornuftige standarder.
         self.declare_parameter('positions.search_positions', [
-            # Posisjon 1: litt til venstre
             0.3, -1.2, 1.4, -1.77, -1.5708, 0.0,
-            # Posisjon 2: litt til høyre
             -0.3, -1.2, 1.4, -1.77, -1.5708, 0.0,
         ])
 
@@ -69,10 +69,13 @@ class Coordinator(Node):
 
         # --- Intern tilstand ---
         self.state = State.IDLE
-        self.cube_positions = {}        # {farge_id: (x, y, z)}
-        self.current_color_idx = 0      # indeks i COLOR_ORDER
+        self.cube_positions = {}
+        self.current_color_idx = 0
         self.search_attempt = 0
-        self.missing_colors = []        # farger vi leter etter
+        self.missing_colors = []
+
+        # --- Publisher: aktiv kameraposisjon for coordinate_transformer ---
+        self.camera_pos_pub = self.create_publisher(Int32, '/active_camera_position', 10)
 
         # --- Service-klienter ---
         self.home_client = self.create_client(
@@ -113,6 +116,16 @@ class Coordinator(Node):
         )
 
     # ------------------------------------------------------------------
+    # Publiser aktiv kameraposisjon
+    # ------------------------------------------------------------------
+    def _publish_camera_position(self, position_id: int):
+        """Fortell coordinate_transformer hvilken homografi som skal brukes."""
+        msg = Int32()
+        msg.data = position_id
+        self.camera_pos_pub.publish(msg)
+        self._spin_wait(0.1)  # gi subscriberen tid til å motta
+
+    # ------------------------------------------------------------------
     # Motta kubeposisjoner
     # ------------------------------------------------------------------
     def positions_callback(self, msg: PoseArray):
@@ -122,7 +135,7 @@ class Coordinator(Node):
             self.cube_positions[color_id] = (
                 pose.position.x,
                 pose.position.y,
-                pose.orientation,  # bevarer orientering fra transformer
+                pose.orientation,
             )
 
         color_names = {0.0: 'rød', 1.0: 'gul', 2.0: 'blå'}
@@ -167,9 +180,10 @@ class Coordinator(Node):
         if not self._call_trigger('/move_to_home', self.home_client):
             return self._error('Kunne ikke nå hjemmeposisjon')
 
-        # --- 2. Fotoposisjon ---
+        # --- 2. Fotoposisjon – sett homografi 0 ---
         self.state = State.PHOTO
         self.get_logger().info('[2/4] Flytter til fotoposisjon...')
+        self._publish_camera_position(0)
         if not self._call_trigger('/move_to_photo', self.photo_client):
             return self._error('Kunne ikke nå fotoposisjon')
 
@@ -179,7 +193,6 @@ class Coordinator(Node):
         if not self._call_trigger('/detect_cubes', self.detect_client):
             return self._error('Deteksjon feilet')
 
-        # Vent litt på at positions_callback har mottatt data
         self._spin_wait(1.0)
 
         # Sjekk hvilke farger som mangler
@@ -189,7 +202,6 @@ class Coordinator(Node):
                 f'Mangler: {[c[1] for c in self.missing_colors]}. Starter søk...'
             )
             if not self._search_for_missing():
-                # Noen farger ble aldri funnet – varsle men fortsett
                 still_missing = self._find_missing_colors()
                 if still_missing:
                     for _, name in still_missing:
@@ -197,6 +209,11 @@ class Coordinator(Node):
                             f'⚠ VARSEL: Fant ikke {name} kube etter '
                             f'{self.max_search} forsøk!'
                         )
+                        
+        # Etter søk, før pekefasen — tilbake til hjemme for ren IK-løsning
+        if self.missing_colors is not None:
+            self.get_logger().info('Tilbake til hjemme før pekefase...')
+            self._call_trigger('/move_to_home', self.home_client)
 
         # --- 4. Beveg til kubene i rekkefølge ---
         self.state = State.MOVE_TO_CUBE
@@ -204,9 +221,7 @@ class Coordinator(Node):
 
         for color_id, color_name in COLOR_ORDER:
             if color_id not in self.cube_positions:
-                self.get_logger().warn(
-                    f'Hopper over {color_name} – ble ikke funnet'
-                )
+                self.get_logger().warn(f'Hopper over {color_name} – ble ikke funnet')
                 continue
 
             x, y, orientation = self.cube_positions[color_id]
@@ -215,19 +230,14 @@ class Coordinator(Node):
             target_z = table_z + z_offset
 
             self.get_logger().info(
-                f'  → Peker på {color_name} kube ved '
-                f'({x:.3f}, {y:.3f}, {target_z:.3f})'
+                f'  → Peker på {color_name} kube ved ({x:.3f}, {y:.3f}, {target_z:.3f})'
             )
 
             if not self._move_to_cartesian(x, y, target_z, orientation):
-                self.get_logger().error(
-                    f'Kunne ikke nå {color_name} kube'
-                )
-                # Fortsett til neste i stedet for å stoppe helt
+                self.get_logger().error(f'Kunne ikke nå {color_name} kube')
                 continue
 
             self.get_logger().info(f'  ✓ Peker på {color_name}!')
-            # Kort pause ved kuben
             self._spin_wait(1.5)
 
         # --- Ferdig – tilbake til hjemme ---
@@ -242,15 +252,13 @@ class Coordinator(Node):
     # Søkelogikk
     # ------------------------------------------------------------------
     def _search_for_missing(self):
-        """
-        Prøv alternative fotoposisjoner for å finne manglende kuber.
-        Returnerer True hvis alle farger ble funnet.
-        """
+        """Prøv søkeposisjoner for å finne manglende kuber."""
         self.state = State.SEARCH
         search_positions = self._get_search_positions()
 
         for attempt in range(self.max_search):
             self.search_attempt = attempt + 1
+            search_idx = attempt + 1  # 1-basert: søkeposisjon 1, 2, 3
 
             if attempt >= len(search_positions):
                 self.get_logger().warn('Ingen flere søkeposisjoner å prøve')
@@ -259,17 +267,20 @@ class Coordinator(Node):
             joints = search_positions[attempt]
             self.get_logger().info(
                 f'  Søkeforsøk {attempt + 1}/{self.max_search}: '
-                f'prøver alternativ posisjon...'
+                f'prøver søkeposisjon {search_idx}...'
             )
 
-            # Flytt til søkeposisjon via parameter-hack
+            # Publiser aktiv kameraposisjon FØR bevegelse
+            self._publish_camera_position(search_idx)
+
+            # Flytt til søkeposisjon
             self._set_parameter_and_move(joints)
 
             # Detekter på nytt
             self._call_trigger('/detect_cubes', self.detect_client)
             self._spin_wait(1.0)
 
-            # Sjekk om vi nå finner alle
+            # Sjekk om alle er funnet
             self.missing_colors = self._find_missing_colors()
             if not self.missing_colors:
                 self.get_logger().info('  Alle kuber funnet ✓')
@@ -282,14 +293,12 @@ class Coordinator(Node):
         return len(self._find_missing_colors()) == 0
 
     def _find_missing_colors(self):
-        """Returner liste med (color_id, name) for farger vi ikke har funnet."""
         return [
             (cid, name) for cid, name in COLOR_ORDER
             if cid not in self.cube_positions
         ]
 
     def _get_search_positions(self):
-        """Hent alternative søkeposisjoner fra config (flat liste → Nx6)."""
         raw = self.get_parameter('positions.search_positions').value
         positions = []
         for i in range(0, len(raw) - 5, 6):
@@ -300,7 +309,6 @@ class Coordinator(Node):
     # Hjelpemetoder
     # ------------------------------------------------------------------
     def _wait_for_future(self, future, timeout_sec=10.0):
-        """Vent på at en future fullføres uten å kalle spin."""
         start = time.time()
         while not future.done():
             if time.time() - start > timeout_sec:
@@ -310,7 +318,6 @@ class Coordinator(Node):
         return True
 
     def _call_trigger(self, name, client, timeout=30.0):
-        """Kall en Trigger-service og vent på svar."""
         if not client.wait_for_service(timeout_sec=10.0):
             self.get_logger().error(f'Service {name} ikke tilgjengelig')
             return False
@@ -328,15 +335,12 @@ class Coordinator(Node):
         return result.success
 
     def _move_to_cartesian(self, x, y, z, orientation):
-        """Sett target_pose-parameter og kall /move_to_pose."""
-        # MoveIt forventer [x, y, z, qx, qy, qz, qw]
         pose_vals = [
             x, y, z,
             orientation.x, orientation.y,
             orientation.z, orientation.w,
         ]
 
-        # Sett parameter på robot_mover-noden
         from rcl_interfaces.msg import Parameter as ParameterMsg
         from rcl_interfaces.msg import ParameterValue, ParameterType
         from rcl_interfaces.srv import SetParameters
@@ -363,11 +367,9 @@ class Coordinator(Node):
         future = set_client.call_async(req)
         self._wait_for_future(future, timeout_sec=5.0)
 
-        # Kall /move_to_pose
         return self._call_trigger('/move_to_pose', self.pose_client, timeout=30.0)
 
     def _set_parameter_and_move(self, joint_values):
-        """Sett target_joints-parameter og kall /move_to_joints."""
         from rcl_interfaces.msg import Parameter as ParameterMsg
         from rcl_interfaces.msg import ParameterValue, ParameterType
         from rcl_interfaces.srv import SetParameters
@@ -397,11 +399,9 @@ class Coordinator(Node):
         return self._call_trigger('/move_to_joints', self.joints_client)
 
     def _spin_wait(self, seconds):
-        """Vent i et antall sekunder (meldinger behandles av MultiThreadedExecutor)."""
         time.sleep(seconds)
 
     def _error(self, msg):
-        """Sett state til ERROR og logg."""
         self.state = State.ERROR
         self.get_logger().error(f'FEIL: {msg}')
         return False
