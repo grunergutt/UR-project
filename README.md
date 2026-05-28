@@ -1,7 +1,7 @@
 # UR-prosjekt
-
-Denne koden er brukt til å styre en UR-robot og bruke maskinsyn til å til å detektere farger på kuber. 
-UR-roboten skal utifra kameraresultat, flytte seg over de ulike kubene i rekkefølgen rød, gul, blå.
+Dette prosjektet bruker ROS2, MoveIt og maskinsyn til å styre en UR-robot. 
+Systemet detekterer røde, gule og blå kuber ved hjelp av kamera og bildebehandling, og beregner deretter robotens målposisjoner basert på kameradata. 
+Roboten beveger seg så til kubene i den forhåndsdefinerte rekkefølgen rød, gul og blå.
 
 <img width="300" alt="20260528_140845000_iOS" src="https://github.com/user-attachments/assets/903f29f8-d544-4162-b51e-7f9c9a85bd6f" />
 
