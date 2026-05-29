@@ -46,7 +46,7 @@ def generate_launch_description():
 
     video_device_arg = DeclareLaunchArgument(
         'video_device',
-        default_value='/dev/video2',
+        default_value='/dev/video3',
         description='V4L2-enhet for kamera (f.eks. /dev/video0, /dev/video2)'
     )
 

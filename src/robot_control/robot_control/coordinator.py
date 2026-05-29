@@ -190,8 +190,7 @@ class Coordinator(Node):
         # --- 3. Deteksjon ---
         self.state = State.DETECT
         self.get_logger().info('[3/4] Tar bilde og detekterer kuber...')
-        if not self._call_trigger('/detect_cubes', self.detect_client):
-            return self._error('Deteksjon feilet')
+        self._call_trigger('/detect_cubes', self.detect_client)
 
         self._spin_wait(1.0)
 

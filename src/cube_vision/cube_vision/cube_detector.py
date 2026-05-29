@@ -40,8 +40,8 @@ class CubeDetector(Node):
         self.declare_parameter('color_thresholds.red.upper2', [180, 255, 255])
 
         # Gul
-        self.declare_parameter('color_thresholds.yellow.lower', [20, 100, 100])
-        self.declare_parameter('color_thresholds.yellow.upper', [35, 255, 255])
+        self.declare_parameter('color_thresholds.yellow.lower', [15, 60, 150])
+        self.declare_parameter('color_thresholds.yellow.upper', [30, 140, 255])
 
         # Blå
         self.declare_parameter('color_thresholds.blue.lower', [100, 150, 50])
