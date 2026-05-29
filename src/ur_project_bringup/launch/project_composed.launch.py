@@ -61,7 +61,7 @@ def generate_launch_description():
     # som ikke matcher prosessnavnet. Bruk YAML-filen for å endre parametre.
     config_file = LaunchConfiguration('config_file')
 
-    # --- Kameradriver ---
+    # Kameradriver
     camera_node = Node(
         package='v4l2_camera',
         executable='v4l2_camera_node',
@@ -92,7 +92,7 @@ def generate_launch_description():
         output='screen',
     )
 
-    # --- Kameravisning: prosessert bilde med deteksjoner ---
+    # Kameravisning: prosessert bilde med deteksjoner
     debug_image_view_node = Node(
         package='image_view',
         executable='image_view',
@@ -101,7 +101,7 @@ def generate_launch_description():
         output='screen',
     )
 
-    # --- Kameravisning: rå kamerabilde (kun ved show_raw_camera:=true) ---
+    # Kameravisning: rå kamerabilde (kun ved show_raw_camera:=true)
     raw_image_view_node = Node(
         package='image_view',
         executable='image_view',

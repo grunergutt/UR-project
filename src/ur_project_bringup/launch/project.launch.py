@@ -21,11 +21,11 @@ from launch_ros.actions import Node
 
 def generate_launch_description():
 
-    # --- Hent config-fil ---
+    # Hent config-fil
     bringup_dir = get_package_share_directory('ur_project_bringup')
     default_config = os.path.join(bringup_dir, 'config', 'project_params.yaml')
 
-    # --- Launch-argumenter (kan overstyres fra terminal) ---
+    # Launch-argumenter (kan overstyres fra terminal)
     config_file_arg = DeclareLaunchArgument(
         'config_file',
         default_value=default_config,
@@ -63,7 +63,7 @@ def generate_launch_description():
         'robot.robot_ip': LaunchConfiguration('robot_ip'),
     }
 
-    # --- Kameradriver ---
+    # Kameradriver
     # Starter v4l2_camera_node og remapper image_raw til /camera/color/image_raw
     # slik at cube_detector finner bildestrømmen på riktig topic.
     camera_node = Node(
@@ -78,7 +78,7 @@ def generate_launch_description():
         output='screen',
     )
 
-    # --- Vision-noder ---
+    # Vision-noder
     cube_vision_node = Node(
         package='cube_vision',
         executable='cube_detector',
@@ -95,7 +95,7 @@ def generate_launch_description():
         output='screen',
     )
 
-    # --- Robot-noder ---
+    # Robot-noder
     robot_control_node = Node(
         package='robot_control',
         executable='robot_mover',
@@ -112,7 +112,7 @@ def generate_launch_description():
         output='screen',
     )
 
-    # --- Kameravisning: prosessert bilde med deteksjoner ---
+    # Kameravisning: prosessert bilde med deteksjoner
     # Viser /cube_detector/debug_image (kamera + innmalte kubeposisjoner).
     # Krever: sudo apt install ros-<distro>-image-view
     debug_image_view_node = Node(
@@ -123,7 +123,7 @@ def generate_launch_description():
         output='screen',
     )
 
-    # --- Kameravisning: rå kamerabilde (kun ved show_raw_camera:=true) ---
+    # Kameravisning: rå kamerabilde (kun ved show_raw_camera:=true)
     raw_image_view_node = Node(
         package='image_view',
         executable='image_view',

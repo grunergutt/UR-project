@@ -56,7 +56,7 @@ class Coordinator(Node):
 
         self.cb_group = ReentrantCallbackGroup()
 
-        # --- Parametre ---
+        # Parametre
         self.declare_parameter('detection.max_search_attempts', 3)
         self.declare_parameter('positions.safe_z_offset', 0.10)
         self.declare_parameter('calibration.table_z', 0.01)
@@ -67,17 +67,17 @@ class Coordinator(Node):
 
         self.max_search = self.get_parameter('detection.max_search_attempts').value
 
-        # --- Intern tilstand ---
+        # Intern tilstand
         self.state = State.IDLE
         self.cube_positions = {}
         self.current_color_idx = 0
         self.search_attempt = 0
         self.missing_colors = []
 
-        # --- Publisher: aktiv kameraposisjon for coordinate_transformer ---
+        # Publisher: aktiv kameraposisjon for coordinate_transformer
         self.camera_pos_pub = self.create_publisher(Int32, '/active_camera_position', 10)
 
-        # --- Service-klienter ---
+        # Service-klienter
         self.home_client = self.create_client(
             Trigger, '/move_to_home', callback_group=self.cb_group
         )
@@ -94,7 +94,7 @@ class Coordinator(Node):
             Trigger, '/move_to_pose', callback_group=self.cb_group
         )
 
-        # --- Subscriber for kubeposisjoner (robotkoordinater) ---
+        # Subscriber for kubeposisjoner (robotkoordinater)
         self.positions_sub = self.create_subscription(
             PoseArray,
             '/cube_positions_robot',
@@ -103,7 +103,7 @@ class Coordinator(Node):
             callback_group=self.cb_group,
         )
 
-        # --- Service for å starte sekvensen ---
+        # Service for å starte sekvensen
         self.start_srv = self.create_service(
             Trigger, '/start_sequence',
             self.start_callback,
@@ -115,9 +115,8 @@ class Coordinator(Node):
             'ros2 service call /start_sequence std_srvs/srv/Trigger "{}"'
         )
 
-    # ------------------------------------------------------------------
+
     # Publiser aktiv kameraposisjon
-    # ------------------------------------------------------------------
     def _publish_camera_position(self, position_id: int):
         """Fortell coordinate_transformer hvilken homografi som skal brukes."""
         msg = Int32()
@@ -125,9 +124,8 @@ class Coordinator(Node):
         self.camera_pos_pub.publish(msg)
         self._spin_wait(0.1)  # gi subscriberen tid til å motta
 
-    # ------------------------------------------------------------------
+
     # Motta kubeposisjoner
-    # ------------------------------------------------------------------
     def positions_callback(self, msg: PoseArray):
         """Lagre siste sett med detekterte kubeposisjoner."""
         for pose in msg.poses:
@@ -142,9 +140,8 @@ class Coordinator(Node):
         found = [color_names.get(cid, '?') for cid in self.cube_positions]
         self.get_logger().info(f'Oppdatert kubeposisjoner: {found}')
 
-    # ------------------------------------------------------------------
+
     # Start sekvensen
-    # ------------------------------------------------------------------
     def start_callback(self, request, response):
         """Start hele pek-på-kubene-sekvensen."""
         if self.state != State.IDLE and self.state != State.DONE \
@@ -168,26 +165,25 @@ class Coordinator(Node):
         )
         return response
 
-    # ------------------------------------------------------------------
+
     # Hovedsekvens
-    # ------------------------------------------------------------------
     def _run_sequence(self):
         """Kjør hele state-machine-flyten synkront."""
 
-        # --- 1. Hjemmeposisjon ---
+        # 1. Hjemmeposisjon
         self.state = State.HOME
         self.get_logger().info('[1/4] Flytter til hjemmeposisjon...')
         if not self._call_trigger('/move_to_home', self.home_client):
             return self._error('Kunne ikke nå hjemmeposisjon')
 
-        # --- 2. Fotoposisjon – sett homografi 0 ---
+        # 2. Fotoposisjon – sett homografi 0
         self.state = State.PHOTO
         self.get_logger().info('[2/4] Flytter til fotoposisjon...')
         self._publish_camera_position(0)
         if not self._call_trigger('/move_to_photo', self.photo_client):
             return self._error('Kunne ikke nå fotoposisjon')
 
-        # --- 3. Deteksjon ---
+        # 3. Deteksjon
         self.state = State.DETECT
         self.get_logger().info('[3/4] Tar bilde og detekterer kuber...')
         self._call_trigger('/detect_cubes', self.detect_client)
@@ -214,7 +210,7 @@ class Coordinator(Node):
             self.get_logger().info('Tilbake til hjemme før pekefase...')
             self._call_trigger('/move_to_home', self.home_client)
 
-        # --- 4. Beveg til kubene i rekkefølge ---
+        # 4. Beveg til kubene i rekkefølge
         self.state = State.MOVE_TO_CUBE
         self.get_logger().info('[4/4] Beveger til kubene i rekkefølge...')
 
@@ -239,7 +235,7 @@ class Coordinator(Node):
             self.get_logger().info(f'  ✓ Peker på {color_name}!')
             self._spin_wait(1.5)
 
-        # --- Ferdig – tilbake til hjemme ---
+        # Ferdig – tilbake til hjemme
         self.get_logger().info('Tilbake til hjemmeposisjon...')
         self._call_trigger('/move_to_home', self.home_client)
 
@@ -247,9 +243,8 @@ class Coordinator(Node):
         self.get_logger().info('========== SEKVENS FULLFØRT ==========')
         return True
 
-    # ------------------------------------------------------------------
+
     # Søkelogikk
-    # ------------------------------------------------------------------
     def _search_for_missing(self):
         """Prøv søkeposisjoner for å finne manglende kuber."""
         self.state = State.SEARCH
@@ -304,9 +299,8 @@ class Coordinator(Node):
             positions.append(raw[i:i + 6])
         return positions
 
-    # ------------------------------------------------------------------
+
     # Hjelpemetoder
-    # ------------------------------------------------------------------
     def _wait_for_future(self, future, timeout_sec=10.0):
         start = time.time()
         while not future.done():

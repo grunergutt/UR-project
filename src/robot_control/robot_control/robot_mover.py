@@ -68,7 +68,7 @@ class RobotMover(Node):
         # Callback-gruppe som tillater parallelle kall
         self.cb_group = ReentrantCallbackGroup()
 
-        # --- Parametre ---
+        # Parametre
         self.declare_parameter('positions.home',
                                [0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
         self.declare_parameter('positions.photo',
@@ -85,7 +85,7 @@ class RobotMover(Node):
 
         controller = self.get_parameter('robot.controller').value
 
-        # --- Action-klienter ---
+        # Action-klienter
         # 1) Joint trajectory (direkte bevegelse)
         self.trajectory_client = ActionClient(
             self,
@@ -104,7 +104,7 @@ class RobotMover(Node):
                 callback_group=self.cb_group,
             )
 
-        # --- Services ---
+        # Services
         self.create_service(
             Trigger, '/move_to_home',
             self.home_callback,
@@ -143,9 +143,8 @@ class RobotMover(Node):
         self._wait_for_servers()
         self.get_logger().info('RobotMover klar ✓')
 
-    # ------------------------------------------------------------------
+
     # Oppstart
-    # ------------------------------------------------------------------
     def _wait_for_servers(self):
         """Vent til action-serverne er tilgjengelige."""
         if not self.trajectory_client.wait_for_server(timeout_sec=10.0):
@@ -167,9 +166,8 @@ class RobotMover(Node):
                 'Start MoveIt med: ros2 launch ur_moveit_config ur_moveit.launch.py'
             )
 
-    # ------------------------------------------------------------------
+  
     # Hjelpemetode for å vente på futures uten å spinne executoren
-    # ------------------------------------------------------------------
     def _wait_for_future(self, future, timeout_sec=10.0):
         """Vent på at en future fullføres uten å kalle spin (unngår re-entrant spin)."""
         start = time.time()
@@ -180,9 +178,8 @@ class RobotMover(Node):
             time.sleep(0.05)
         return True
 
-    # ------------------------------------------------------------------
+
     # Service callbacks
-    # ------------------------------------------------------------------
     def home_callback(self, request, response):
         joints = self.get_parameter('positions.home').value
         self.get_logger().info('Beveger til hjemmeposisjon...')
@@ -273,9 +270,8 @@ class RobotMover(Node):
         response.message = 'Pose nådd ✓' if success else 'MoveIt feil'
         return response
 
-    # ------------------------------------------------------------------
+
     # Konverteringshjelpere
-    # ------------------------------------------------------------------
     @staticmethod
     def _rpy_to_quaternion(roll, pitch, yaw):
         """Konverter roll/pitch/yaw (radianer, ZYX-konvensjon) til kvaternion."""
@@ -289,9 +285,8 @@ class RobotMover(Node):
         qz = cr * cp * sy - sr * sp * cy
         return qx, qy, qz, qw
 
-    # ------------------------------------------------------------------
+
     # Offentlig metode for coordinator
-    # ------------------------------------------------------------------
     def move_to_joints(self, joint_values, duration_sec=4.0):
         """Direkte kall for bruk fra coordinator-noden."""
         return self._send_joint_goal(joint_values, duration_sec)
@@ -300,9 +295,8 @@ class RobotMover(Node):
         """Direkte kall for kartesisk bevegelse."""
         return self._send_cartesian_goal([x, y, z, qx, qy, qz, qw])
 
-    # ------------------------------------------------------------------
+
     # Joint trajectory
-    # ------------------------------------------------------------------
     def _send_joint_goal(self, joint_values, duration_sec=4.0):
         """Send en joint-trajectory med ett punkt til kontrolleren."""
         if len(joint_values) != 6:
@@ -347,9 +341,8 @@ class RobotMover(Node):
             self.get_logger().error(f'Bevegelse feilet: {error}')
             return False
 
-    # ------------------------------------------------------------------
+
     # MoveIt kartesisk bevegelse
-    # ------------------------------------------------------------------
     def _send_cartesian_goal(self, pose_vals):
         """Send en kartesisk pose til MoveIt MoveGroup."""
         if not MOVEIT_AVAILABLE or self.moveit_client is None:
