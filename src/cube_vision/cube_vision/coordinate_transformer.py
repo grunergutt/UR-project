@@ -33,7 +33,7 @@ class CoordinateTransformer(Node):
     def __init__(self):
         super().__init__('coordinate_transformer')
 
-        # --- Parametre ---
+        # Parametre
         self.declare_parameter('calibration.calibration_points', [0.0])
         self.declare_parameter('calibration.table_z', 0.01)
         self.declare_parameter('positions.safe_z_offset', 0.10)
@@ -43,14 +43,14 @@ class CoordinateTransformer(Node):
         self.declare_parameter('calibration.search_calibration_points_2', [0.0])
         self.declare_parameter('calibration.search_calibration_points_3', [0.0])
 
-        # --- Aktiv posisjon (0=foto, 1-3=søk) ---
+        # Aktiv posisjon (0=foto, 1-3=søk)
         self.active_position = 0
 
-        # --- Beregn alle homografier ---
+        # Beregn alle homografier 
         self.homographies = {}  # {posisjon_id: H-matrise}
         self._compute_all_homographies()
 
-        # --- Subscriber: pikselkoordinater ---
+        # Subscriber: pikselkoordinater 
         self.pixel_sub = self.create_subscription(
             PoseArray,
             '/cube_positions',
@@ -58,7 +58,7 @@ class CoordinateTransformer(Node):
             10
         )
 
-        # --- Subscriber: hvilken posisjon kameraet er i ---
+        # Subscriber: hvilken posisjon kameraet er i 
         self.position_sub = self.create_subscription(
             Int32,
             '/active_camera_position',
@@ -66,12 +66,12 @@ class CoordinateTransformer(Node):
             10
         )
 
-        # --- Publisher: robotkoordinater ---
+        # Publisher: robotkoordinater
         self.robot_pub = self.create_publisher(
             PoseArray, '/cube_positions_robot', 10
         )
 
-        # --- Service: re-kalibrer ---
+        # Service: re-kalibrer
         self.cal_srv = self.create_service(
             Trigger,
             '/calibrate_transform',
@@ -80,9 +80,8 @@ class CoordinateTransformer(Node):
 
         self.get_logger().info('CoordinateTransformer startet')
 
-    # ------------------------------------------------------------------
+  
     # Homografi
-    # ------------------------------------------------------------------
     def _compute_homography_from_points(self, raw, label=''):
         """Beregn homografi fra flat liste [px,py,rx,ry, ...]."""
         if not raw or len(raw) < 16 or (len(raw) == 1 and raw[0] == 0.0):
@@ -138,9 +137,8 @@ class CoordinateTransformer(Node):
         transformed = cv2.perspectiveTransform(pt, H)
         return float(transformed[0][0][0]), float(transformed[0][0][1])
 
-    # ------------------------------------------------------------------
+
     # Callbacks
-    # ------------------------------------------------------------------
     def position_callback(self, msg: Int32):
         """Oppdater hvilken kameraposisjon som er aktiv."""
         self.active_position = msg.data
