@@ -17,22 +17,6 @@ Pakker som må være installert er:
 ---
 # Bruk
 
-## Surface terminal 1
-
-Start UR-driver:
-
-```Bash
-ros2 launch ur_robot_driver ur_control.launch.py
-```
-
-## Surface terminal 2
-
-Start MoveIt og RViz:
-
-```Bash
-ros2 launch ur_moveit_config ur_moveit.launch.py
-```
-
 ## PC terminal 1
 
 Starter kamera og kubedeteksjon:
@@ -47,6 +31,14 @@ Starter robotstyring:
 
 ```bash
 ros2 launch ur_project_bringup project.launch.py
+```
+
+## PC terminal 3
+
+Starter søkesekvensen:
+
+```Bash
+ros2 service call /start_sequence std_srvs/srv/Trigger "{}"
 ```
 
 ---
