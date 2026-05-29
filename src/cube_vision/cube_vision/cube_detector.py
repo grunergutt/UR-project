@@ -30,7 +30,7 @@ class CubeDetector(Node):
     def __init__(self):
         super().__init__('cube_detector')
 
-        # --- Deklarer parametre (leses fra project_params.yaml) ---
+        # Deklarer parametre (leses fra project_params.yaml)
         self.declare_parameter('camera.image_topic', '/camera/color/image_raw')
 
         # Røde HSV-terskler (to intervaller fordi rød wrapper rundt 0/180)
@@ -53,21 +53,21 @@ class CubeDetector(Node):
         # Debug
         self.declare_parameter('debug.show_camera', True)
 
-        # --- Les parametre ---
+        # Les parametre
         image_topic = self.get_parameter('camera.image_topic').value
         self._load_color_thresholds()
 
         self.min_area = self.get_parameter('detection.min_contour_area').value
         self.show_camera = self.get_parameter('debug.show_camera').value
 
-        # --- Intern tilstand ---
+        # Intern tilstand
         self.bridge = CvBridge()
         self.latest_image = None
         self.latest_cv_image = None
         self.detection_requested = False
         self.last_results = PoseArray()
 
-        # --- Subscriber ---
+        # Subscriber
         self.image_sub = self.create_subscription(
             Image,
             image_topic,
@@ -75,11 +75,11 @@ class CubeDetector(Node):
             10
         )
 
-        # --- Publisher ---
+        # Publisher
         self.cube_pub = self.create_publisher(PoseArray, '/cube_positions', 10)
         self.debug_pub = self.create_publisher(Image, '/cube_detector/debug_image', 10)
 
-        # --- Service ---
+        # Service
         self.detect_srv = self.create_service(
             Trigger,
             '/detect_cubes',
@@ -90,9 +90,8 @@ class CubeDetector(Node):
             f'CubeDetector startet – lytter på "{image_topic}"'
         )
 
-    # ------------------------------------------------------------------
+  
     # Parameterinnlasting
-    # ------------------------------------------------------------------
     def _load_color_thresholds(self):
         """Les HSV-terskler fra parametre og lagre som numpy-arrays."""
         self.color_ranges = {}
@@ -125,9 +124,8 @@ class CubeDetector(Node):
             ),
         ]
 
-    # ------------------------------------------------------------------
+  
     # Callbacks
-    # ------------------------------------------------------------------
     def image_callback(self, msg: Image):
         """Lagre siste bilde. Kjør deteksjon hvis forespurt."""
         self.latest_image = msg
@@ -163,9 +161,8 @@ class CubeDetector(Node):
 
         return response
 
-    # ------------------------------------------------------------------
+  
     # Deteksjonslogikk
-    # ------------------------------------------------------------------
     def _run_detection(self):
         """Kjør fargesegmentering på siste mottatte bilde."""
         if self.latest_cv_image is None:
@@ -254,9 +251,8 @@ class CubeDetector(Node):
             for p in self.last_results.poses
         ]
 
-    # ------------------------------------------------------------------
+
     # Debug-visning
-    # ------------------------------------------------------------------
     def _show_debug_frame(self, cv_image):
         """Publiser kamerabilde med detekterte kuber tegnet inn på /cube_detector/debug_image."""
         display = cv_image.copy()
